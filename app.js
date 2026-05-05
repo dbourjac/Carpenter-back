@@ -28,13 +28,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ── Sesiones ────────────────────────────────────────────────────
 app.use(session({
-  secret:            process.env.SESSION_SECRET || 'carpinteria_secret_dev',
-  resave:            false,
+  secret: process.env.SESSION_SECRET || 'carpinteria_secret_dev',
+  resave: false,
   saveUninitialized: false,
+  proxy: true,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true,       // siempre true en producción
+    sameSite: 'none',   // obligatorio cross-domain
     maxAge: 1000 * 60 * 60 * 8,
   }
 }));

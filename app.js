@@ -4,11 +4,12 @@ const session = require('express-session');
 const cors    = require('cors');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ── Middlewares globales ─────────────────────────────────────────
 app.use(cors({
-  origin:      process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,   // necesario para enviar cookies de sesión
+  origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL : 'http://localhost:5173',
+  credentials: true,
 }));
 
 // Aumentar límite para imágenes Base64 (5 MB aprox → 7 MB en base64)
@@ -22,9 +23,10 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure:   process.env.NODE_ENV === 'production', // HTTPS en prod
-    maxAge:   1000 * 60 * 60 * 8,  // 8 horas
-  },
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 1000 * 60 * 60 * 8,
+  }
 }));
 
 // ── Rutas ────────────────────────────────────────────────────────
@@ -55,7 +57,7 @@ app.use((err, req, res, _next) => {
 // ── Iniciar servidor ─────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
 
 module.exports = app;

@@ -21,7 +21,20 @@ const login = async (req, res) => {
 
     // Persistir usuario en sesión (sin el hash de contraseña)
     req.session.usuario = usuario;
-    res.json({ message: 'Sesión iniciada', usuario });
+
+    req.session.save((err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({
+          message: 'Error al guardar sesión'
+        });
+      }
+
+      res.json({
+        message: 'Sesión iniciada',
+        usuario
+      });
+    });
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });
   }

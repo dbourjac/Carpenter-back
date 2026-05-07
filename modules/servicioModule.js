@@ -90,19 +90,7 @@ const remove = async (id) => {
  * @throws {{ status: 404 }} Si no se encuentra
  */
 const completar = async (id, { fecha_fin, notas }) => {
-  const servicio = await getById(id);
-  await servicioRepo.completar(id, fecha_fin);
-
-  // Insertar registro inmutable en historial para reportes futuros
-  await pool.execute(
-    `INSERT INTO historial_servicios
-     (nombre_servicio, servicio_id, solicitante_id, personal_id, tipo_hs_servicio, fecha_inicio, fecha_fin, status_final, notas)
-     VALUES ( ?, ?, ?, ?, ?, ?, ?, 'Completado', ?)`,
-    [servicio.nombre_servicio, id, servicio.solicitante_id, servicio.personal_id,
-     servicio.tipo_servicio, servicio.fecha_inicio, fecha_fin, notas || null]
-  );
-
-  return { message: 'Servicio completado y registrado en historial' };
+  return await servicioRepo.completar(id, fecha_fin, notas);
 };
 
 /**
@@ -115,20 +103,25 @@ const completar = async (id, { fecha_fin, notas }) => {
  * @throws {{ status: 409 }} Si el servicio ya está completado
  */
 const cambiarStatus = async (id, status) => {
-  if (!VALID_STATUS.includes(status))
-    throw { status: 400, message: `Status inválido. Valores permitidos: ${VALID_STATUS.join(', ')}` };
 
-  const servicio = await getById(id);
+  if (!VALID_STATUS.includes(status)) {
+    throw {
+      status: 400,
+      message: `Status inválido`
+    };
+  }
 
-  // Un servicio completado no puede retroceder de estado
-  if (servicio.status === 'Completado')
-    throw { status: 409, message: 'No se puede cambiar el status de un servicio ya completado. Usa el endpoint /completar.' };
+  if (status === 'Completado') {
+    throw {
+      status: 400,
+      message: 'Para completar un servicio usa completar()'
+    };
+  }
 
-  // Redirigir al flujo correcto si intentan completar desde aquí
-  if (status === 'Completado')
-    throw { status: 400, message: 'Para completar un servicio usa PATCH /servicios/:id/completar (requiere fecha_fin).' };
+  await getById(id);
 
-  await pool.execute(`UPDATE servicios SET status = ? WHERE id = ?`, [status, id]);
+  await servicioRepo.cambiarStatus(id, status);
+
   return servicioRepo.getById(id);
 };
 

@@ -188,17 +188,30 @@ const completar = async (id, fecha_fin, notas) => {
     // Actualizar solicitante
     await conn.execute(
       `UPDATE solicitantes
-       SET servicios_activos = GREATEST(servicios_activos - 1, 0),
-           total_servicios_completados = total_servicios_completados + 1
-       WHERE id = ?`,
+      SET servicios_activos =
+        CASE
+          WHEN servicios_activos > 0
+          THEN servicios_activos - 1
+          ELSE 0
+        END,
+
+          total_servicios_completados =
+            total_servicios_completados + 1
+
+      WHERE id = ?`,
       [servicio.solicitante_id]
     );
     // Actualizar técnico
     if (servicio.personal_id) {
       await conn.execute(
         `UPDATE personal
-         SET servicios_activos = GREATEST(servicios_activos - 1, 0)
-         WHERE id = ?`,
+        SET servicios_activos =
+          CASE
+            WHEN servicios_activos > 0
+            THEN servicios_activos - 1
+            ELSE 0
+          END
+        WHERE id = ?`,
         [servicio.personal_id]
       );
     }

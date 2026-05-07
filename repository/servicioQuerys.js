@@ -253,57 +253,66 @@ const cambiarStatus = async (id, status) => {
     if (!servicio) {
       throw new Error('Servicio no encontrado');
     }
-    // Cambiar status
-    await conn.execute(
-      `UPDATE servicios
-       SET status = ?
-       WHERE id = ?`,
-      [status, id]
-    );
-    // Restaurar contadores solicitante
-    await conn.execute(
-      `UPDATE solicitantes
-       SET servicios_activos = GREATEST(servicios_activos + 1, 0),
-           total_servicios_completados = GREATEST(total_servicios_completados - 1, 0)
-       WHERE id = ?`,
-      [servicio.solicitante_id]
-    );
-    // Restaurar contador técnico
-    if (servicio.personal_id) {
+    const estabaCompletado = servicio.status === 'Completado';
 
+      // Cambiar status
       await conn.execute(
-        `UPDATE personal
-         SET servicios_activos = GREATEST(servicios_activos + 1, 0)
-         WHERE id = ?`,
-        [servicio.personal_id]
+        `UPDATE servicios
+        SET status = ?
+        WHERE id = ?`,
+        [status, id]
       );
-    }
-    // Restaurar utensilios
-    await conn.execute(
-      `UPDATE utensilios u
-       JOIN servicio_utensilios su
-         ON su.utensilio_id = u.id
-       SET u.status_utensilio = 'En uso',
-           u.operador_id = ?,
-           u.solicitante_id = ?
-       WHERE su.servicio_id = ?
-         AND u.status_utensilio = 'Finalizado'`,
-      [servicio.personal_id, servicio.solicitante_id, id]
-    );
-    // Restaurar relación utensilios
-    await conn.execute(
-      `UPDATE servicio_utensilios
-       SET Status = 'En uso'
-       WHERE servicio_id = ?
-         AND Status = 'Finalizado'`,
-      [id]
-    );
-    // Eliminar historial anterior
-    await conn.execute(
-      `DELETE FROM historial_servicios
-       WHERE servicio_id = ?`,
-      [id]
-    );
+
+      if (estabaCompletado) {
+
+        // Restaurar contadores solicitante
+        await conn.execute(
+          `UPDATE solicitantes
+          SET servicios_activos = GREATEST(servicios_activos + 1, 0),
+              total_servicios_completados = GREATEST(total_servicios_completados - 1, 0)
+          WHERE id = ?`,
+          [servicio.solicitante_id]
+        );
+
+        // Restaurar contador técnico
+        if (servicio.personal_id) {
+          await conn.execute(
+            `UPDATE personal
+            SET servicios_activos = GREATEST(servicios_activos + 1, 0)
+            WHERE id = ?`,
+            [servicio.personal_id]
+          );
+        }
+
+        // Restaurar utensilios
+        await conn.execute(
+          `UPDATE utensilios u
+          JOIN servicio_utensilios su
+            ON su.utensilio_id = u.id
+          SET u.status_utensilio = 'En uso',
+              u.operador_id = ?,
+              u.solicitante_id = ?
+          WHERE su.servicio_id = ?
+            AND u.status_utensilio = 'Finalizado'`,
+          [servicio.personal_id, servicio.solicitante_id, id]
+        );
+
+        // Restaurar relación utensilios
+        await conn.execute(
+          `UPDATE servicio_utensilios
+          SET Status = 'En uso'
+          WHERE servicio_id = ?
+            AND Status = 'Finalizado'`,
+          [id]
+        );
+
+        // Eliminar historial
+        await conn.execute(
+          `DELETE FROM historial_servicios
+          WHERE servicio_id = ?`,
+          [id]
+        );
+      }
     await conn.commit();
     return true;
   } catch (err) {

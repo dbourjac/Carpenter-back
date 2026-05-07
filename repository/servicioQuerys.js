@@ -215,32 +215,70 @@ const completar = async (id, fecha_fin, notas) => {
         [servicio.personal_id]
       );
     }
-    // Historial
-    await conn.execute(
-      `INSERT INTO historial_servicios
-       (
-         nombre_servicio,
-         servicio_id,
-         solicitante_id,
-         personal_id,
-         tipo_hs_servicio,
-         fecha_inicio,
-         fecha_fin,
-         status_final,
-         notas
-       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'Completado', ?)`,
-      [
-        servicio.nombre_servicio,
-        servicio.id,
-        servicio.solicitante_id,
-        servicio.personal_id,
-        servicio.tipo_servicio,
-        servicio.fecha_inicio,
-        fecha_fin,
-        notas || null
-      ]
+    // Verificar historial existente
+    const [historialExistente] = await conn.execute(
+      `SELECT id
+      FROM historial_servicios
+      WHERE servicio_id = ?`,
+      [id]
     );
+
+    if (historialExistente.length > 0) {
+
+      // Actualizar historial existente
+      await conn.execute(
+        `UPDATE historial_servicios
+        SET
+          nombre_servicio = ?,
+          solicitante_id = ?,
+          personal_id = ?,
+          tipo_hs_servicio = ?,
+          fecha_inicio = ?,
+          fecha_fin = ?,
+          status_final = 'Completado',
+          notas = ?
+        WHERE servicio_id = ?`,
+        [
+          servicio.nombre_servicio,
+          servicio.solicitante_id,
+          servicio.personal_id,
+          servicio.tipo_servicio,
+          servicio.fecha_inicio,
+          fecha_fin,
+          notas || null,
+          id
+        ]
+      );
+
+    } else {
+
+      // Crear historial nuevo
+      await conn.execute(
+        `INSERT INTO historial_servicios
+        (
+          nombre_servicio,
+          servicio_id,
+          solicitante_id,
+          personal_id,
+          tipo_hs_servicio,
+          fecha_inicio,
+          fecha_fin,
+          status_final,
+          notas
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'Completado', ?)`,
+        [
+          servicio.nombre_servicio,
+          servicio.id,
+          servicio.solicitante_id,
+          servicio.personal_id,
+          servicio.tipo_servicio,
+          servicio.fecha_inicio,
+          fecha_fin,
+          notas || null
+        ]
+      );
+    }
     await conn.commit();
     return {
       message: 'Servicio completado y registrado en historial'

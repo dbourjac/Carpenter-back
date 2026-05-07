@@ -103,32 +103,24 @@ const completar = async (id, { fecha_fin, notas }) => {
  * @throws {{ status: 409 }} Si el servicio ya está completado
  */
 const cambiarStatus = async (id, status) => {
+
   if (!VALID_STATUS.includes(status)) {
-    throw {
-      status: 400,message: `Status inválido. Valores permitidos: ${VALID_STATUS.join(', ')}`
-    };
-  }
-  const servicio = await getById(id);
-  // Cambio especial cuando regresa desde completado
-  if (
-    servicio.status === 'Completado' &&
-    (status === 'En progreso' || status === 'Pendiente')
-  ) {
-    await repo.cambiarStatus(id, status);
-    return servicioRepo.getById(id);
-  }else{
-  await conn.execute(
-    `UPDATE servicios SET status = ? WHERE id = ?`,
-    [status, id]
-  );
-  }
-  // Completar tiene flujo aparte
-  if (status === 'Completado') {
+
     throw {
       status: 400,
-      message: 'Para completar un servicio usa PATCH /servicios/:id/completar'
+      message: `Status inválido`
     };
   }
+
+  await getById(id);
+
+  await pool.execute(
+    `UPDATE servicios
+     SET status = ?
+     WHERE id = ?`,
+    [status, id]
+  );
+
   return servicioRepo.getById(id);
 };
 

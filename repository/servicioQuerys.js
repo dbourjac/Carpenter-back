@@ -470,6 +470,6 @@ const removeUtensilio = async (servicio_id, utensilio_id) => {
 
 module.exports = {
   getAll, getById,
-  create, update, completar, remove,
+  create, update, completar, remove, cambiarStatus,
   getUtensilios, addUtensilio, removeUtensilio,
 };

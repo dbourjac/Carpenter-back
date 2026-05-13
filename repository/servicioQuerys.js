@@ -215,6 +215,17 @@ const completar = async (id, fecha_fin, notas) => {
         [servicio.personal_id]
       );
     }
+    // Liberar utensilios asignados
+    await conn.execute(
+      `UPDATE utensilios u
+       INNER JOIN servicio_utensilios su
+         ON su.utensilio_id = u.id
+       SET
+         u.status_utensilio = 'Disponible',
+         u.operador_id = NULL
+       WHERE su.servicio_id = ?`,
+      [id]
+    );
     // Verificar historial existente
     const [historialExistente] = await conn.execute(
       `SELECT id
@@ -339,7 +350,7 @@ const cambiarStatus = async (id, status) => {
           );
         }
 
-        // Restaurar utensilios
+/*        // Restaurar utensilios
         await conn.execute(
           `UPDATE utensilios u
           JOIN servicio_utensilios su
@@ -360,13 +371,32 @@ const cambiarStatus = async (id, status) => {
             AND Status = 'Finalizado'`,
           [id]
         );
-
+*/
         // Eliminar historial
         await conn.execute(
           `DELETE FROM historial_servicios
           WHERE servicio_id = ?`,
           [id]
         );
+      }
+      // Si el servicio deja de estar completado,
+      // volver utensilios a "En uso"
+      if (estabaCompletado && status !== 'Completado') {
+
+        await conn.execute(
+          `UPDATE utensilios u
+           INNER JOIN servicio_utensilios su
+             ON su.utensilio_id = u.id
+           SET
+             u.status_utensilio = 'En uso',
+             u.operador_id = ?
+           WHERE su.servicio_id = ?`,
+          [
+            servicio.personal_id || null,
+            id
+          ]
+        );
+
       }
     await conn.commit();
     return true;

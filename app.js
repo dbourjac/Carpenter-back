@@ -51,7 +51,7 @@ app.use('/api/reportes',    require('./routes/reportesRoute'));
 
 // ── Cron: actualización diaria de estados de mantenimiento ───────
 const { iniciarCronMantenimiento } = require("./modules/mantenimientoCron");
-iniciarCronMantenimiento({ ejecutarAlInicio: process.env.NODE_ENV !== "production" });
+iniciarCronMantenimiento({ ejecutarAlInicio: true });
 
 // ── Health check ─────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));

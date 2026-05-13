@@ -309,9 +309,13 @@ const cambiarStatus = async (id, status) => {
       // Cambiar status
       await conn.execute(
         `UPDATE servicios
-        SET status = ?
+        SET status = ?,
+            fecha_fin = CASE
+              WHEN ? != 'Completado' THEN NULL
+              ELSE fecha_fin
+            END
         WHERE id = ?`,
-        [status, id]
+        [status, status, id]
       );
 
       if (estabaCompletado) {
